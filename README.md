@@ -134,7 +134,9 @@ This rebuilds the main worktree using its own isolated environment.
 
 
 ## Running Ansible
-Always use the repo local Ansible commands provided in bin/.
+
+Always use the repo local Ansible commands provided in `bin/`.
+
 Examples:
 ```bash
 ansible --version
@@ -148,16 +150,21 @@ prepending the bin directory to `PATH`.
 
 
 ## Vault integration
+
 This repository is configured to work directly with Ansible Vault.
 
 Vaulted files can be:
 
-- Viewed with git diff
-- Searched with git grep
-- Merged using a custom merge driver
+- **Viewed with `git diff`** - Decrypted content shown in terminal (not written to disk)
+- **Searched with `git grep`** - Search inside encrypted files (decryption happens in memory via pipe)
+- **Merged with custom driver** - Decrypts, merges, and re-encrypts automatically
 
-Decryption happens in memory only. Plaintext secrets are not written to disk or
-stored in Git history.
+
+**Security Notes:**
+- `git diff` and `git grep` process decrypted content through pipes (no disk writes)
+- The merge driver temporarily writes decrypted content to `$TMPDIR`, then securely deletes it
+- Plaintext secrets are never committed to Git history
+- On shared/untrusted systems, set `TMPDIR` to an encrypted location before merging
 
 
 ## Repository layout
