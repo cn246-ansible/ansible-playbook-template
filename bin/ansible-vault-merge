@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# ansible-vault-merge - Three-way merge driver for Ansible Vault files
+#
+# Git merge driver for encrypted vault files. Decrypts all versions,
+# performs a standard three-way merge, then re-encrypts the result.
+#
+# Arguments from git (passed automatically):
+#   %O - ancestor's version
+#   %A - current version
+#   %B - other branch's version
+#   %L - conflict marker size
+#   %P - pathname of file being merged
+#
+# Exit codes:
+#   0 - Merge successful (no conflicts or auto-resolved)
+#   1 - Merge conflicts (manual resolution needed)
+#
+# Usage (called automatically by git):
+#   ansible-vault-merge %O %A %B %L %P
+
+set -euo pipefail
+
+if [ "$#" -ne 5 ]; then
+  printf '%s\n' "[ERROR] Invalid arguments. Called by git automatically." >&2
+  printf '%s\n' "Usage: $0 <ancestor> <current> <other> <marker-size> <pathname>" >&2
+  exit 2
+fi
+
+ANCESTOR="$1"
+CURRENT="$2"
+OTHER="$3"
+_MARKER_SIZE="$4"
+PATHNAME="$5"
+
+# Temporary files for decrypted content
+umask 077
+TEMP_DIR="$(mktemp -d)"
+trap 'rm -rf "${TEMP_DIR}"' EXIT
+
+ANCESTOR_DEC="${TEMP_DIR}/ancestor"
+CURRENT_DEC="${TEMP_DIR}/current"
+OTHER_DEC="${TEMP_DIR}/other"
+MERGED_DEC="${TEMP_DIR}/merged"
+
+# Decrypt all versions
+"$(dirname "$0")/ansible-vault" view "${ANCESTOR}" > "${ANCESTOR_DEC}" 2>/dev/null || echo "" > "${ANCESTOR_DEC}"
+"$(dirname "$0")/ansible-vault" view "${CURRENT}" > "${CURRENT_DEC}" 2>/dev/null || echo "" > "${CURRENT_DEC}"
+"$(dirname "$0")/ansible-vault" view "${OTHER}" > "${OTHER_DEC}" 2>/dev/null || echo "" > "${OTHER_DEC}"
+
+# Perform three-way merge on decrypted content
+if git merge-file -p -L "Current" -L "Ancestor" -L "Other" \
+  "${CURRENT_DEC}" "${ANCESTOR_DEC}" "${OTHER_DEC}" > "${MERGED_DEC}"; then
+  # Clean merge - re-encrypt and replace current file
+  "$(dirname "$0")/ansible-vault" encrypt --output "${CURRENT}" "${MERGED_DEC}"
+  exit 0
+else
+  # Merge conflicts - re-encrypt with conflict markers
+  "$(dirname "$0")/ansible-vault" encrypt --output "${CURRENT}" "${MERGED_DEC}"
+  printf '\n'
+  printf '%s\n' "$(tput setaf 3)[WARNING] Merge conflicts in ${PATHNAME}$(tput sgr0)" >&2
+  printf '%s\n' "Edit the file to resolve conflicts manually:" >&2
+  printf '%s\n' "  ansible-vault edit ${PATHNAME}" >&2
+  printf '%s\n' "  # manually resolve conflicts and save" >&2
+  printf '\n'
+  exit 1
+fi
+
+# vim: ft=sh ts=2 sts=2 sw=2 sr et

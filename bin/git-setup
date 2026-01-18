@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# git-setup - Configure local git for Ansible playbook repository
+#
+# Sets up custom diff/merge/grep drivers for Ansible-specific files:
+#   - ansible diff driver: Better context for ini-style inventory files
+#   - ansible-vault driver: View/merge/grep encrypted vault files as plaintext
+#
+# These settings are LOCAL to this repository and won't affect your global git config.
+#
+# Usage:
+#   ./git-setup
+#
+# Requirements:
+#   - ansible-vault binary (via ./bin/ansible-vault shim)
+#   - ansible-vault-merge script (via ./bin/ansible-vault-merge)
+#
+# See .gitattributes for file pattern matching
+
+set -euo pipefail
+
+# Verify we're in a git repository
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  printf '%s\n' "[ERROR] Not in a git repository. Run 'git init' first." >&2
+  exit 1
+fi
+
+printf '%s\n' "Configuring local git settings for Ansible..."
+
+# Ansible inventory diff driver - shows [section] headers in diff context
+git config --local diff.ansible.xfuncname '^\s*\[.*\]$'
+
+# Ansible Vault diff driver - decrypt vaults for readable diffs
+git config --local diff.ansible-vault.textconv "./bin/ansible-vault view"
+git config --local diff.ansible-vault.cachetextconv false
+
+# Ansible Vault grep - search inside encrypted files
+git config --local grep.ansible-vault.command "./bin/ansible-vault view"
+
+# Ansible Vault merge driver - merge encrypted files intelligently
+git config --local merge.ansible-vault.name "Ansible Vault merge driver"
+git config --local merge.ansible-vault.driver "./bin/ansible-vault-merge %O %A %B %L %P"
+
+# Optional: Set up ansible-lint as a pre-commit hook helper
+# git config --local core.hooksPath .githooks
+
+printf '%s\n' "Git configuration complete!"
+
+# vim: ft=sh ts=2 sts=2 sw=2 sr et

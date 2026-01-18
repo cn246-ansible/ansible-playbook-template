@@ -1,0 +1,27 @@
+# direnv
+.direnv/
+.envrc.local
+.env.local
+
+# Python / uv
+.uv/
+.venv/
+__pycache__/
+*.pyc
+
+
+# Ansible runtime state
+.ansible/
+*.retry
+.vault-pass
+
+# Installed Ansible collections (artifacts)
+collections/*
+!collections/requirements.yml
+
+# Optional: editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+
+# vim: ft=gitignore ts=2 sts=2 sw=2 sr et

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Ansible Shim - Wrapper for running Ansible via uv
+
+# This shim ensures Ansible commands run in an isolated, version-controlled
+# environment managed by uv (Python package manager). It automatically:
+#   - Resolves the project root (even through symlinks)
+#   - Sets ANSIBLE_CONFIG to the project's ansible.cfg
+#   - Executes commands via 'uv run' with locked dependencies
+#
+# Benefits:
+#   - Consistent Ansible versions across team/environments
+#   - Isolated dependencies (no conflicts with system Python)
+#   - Reproducible runs via uv.lock
+#   - Works from any directory (finds project root automatically)
+#
+# Usage:
+#   ansible [standard ansible arguments]
+#
+#   # Optional: Override uv environment
+#   UV_PROJECT_ENVIRONMENT=production ansible --version
+#
+# Requirements:
+#   - uv installed and in PATH
+#   - pyproject.toml with ansible dependencies in project root
+#   - ansible.cfg in project root
+#
+# See: https://docs.astral.sh/uv/ for uv documentation
+
+set -euo pipefail
+
+# shellcheck source=./_ansible_shim_lib.sh
+. "$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/_ansible_shim_lib.sh"
+
+ansible_shim_exec ansible "$@"
+
+# vim: ft=sh ts=2 sts=2 sw=2 sr et

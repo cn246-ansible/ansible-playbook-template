@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# ansiule playuook shim - runs 'ansible-playbook' via uv with locked dependencies
+# See ./ansible for full documentation
+
+set -euo pipefail
+
+# shellcheck source=./_ansible_shim_lib.sh
+. "$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/_ansible_shim_lib.sh"
+
+ansible_shim_exec ansible-playbook "$@"
+
+# vim: ft=sh ts=2 sts=2 sw=2 sr et

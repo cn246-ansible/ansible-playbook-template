@@ -1,0 +1,47 @@
+# Treat all text as text by default
+* text=auto
+
+# Common
+*.json   text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.j2     text eol=lf
+
+# Documentation
+*.md       text eol=lf diff=markdown
+*.txt      text eol=lf
+README     text eol=lf diff=markdown
+CHANGELOG  text eol=lf diff=markdown
+
+# Shell scripts & source code
+*.py     text eol=lf
+*.sh     text eol=lf
+*.bash   text eol=lf
+*.zsh    text eol=lf
+
+# Certificates and secrets
+*.crt    -text
+*.key    -text
+*.pem    -text
+*.pfx    -text
+*.p12    -text
+
+# Ansible inventory
+ansible.cfg   text eol=lf diff=ansible
+*.ini         text eol=lf diff=ansible
+hosts         text eol=lf diff=ansible
+inventory     text eol=lf diff=ansible
+
+# Vault overrides (must be after the general rules)
+*.vault.*  -text -eol diff=ansible-vault merge=ansible-vault grep=ansible-vault
+vault.*    -text -eol diff=ansible-vault merge=ansible-vault grep=ansible-vault
+
+# Don't include these in exports/releases
+.gitattributes export-ignore
+.gitignore     export-ignore
+.github        export-ignore
+.ansible-lint  export-ignore
+git-setup      export-ignore
+*.retry        export-ignore
+
+# vim: ft=gitattributes ts=8 sts=2 sw=2 nosr et

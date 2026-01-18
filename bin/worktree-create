@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Create a git worktree
+
+if [ "$#" -ne 1 ]; then
+  printf '%s\n' "Usage: worktree-create <branch-name>" >&2
+  exit 2
+fi
+
+branch="$1"
+
+# Must be run from inside an existing worktree
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  printf '%s\n' "Not inside a git worktree" >&2
+  exit 1
+}
+
+repo_name="$(basename "${repo_root}")"
+parent_dir="$(cd "${repo_root}/.." && pwd)"
+
+target="${parent_dir}/${repo_name}-${branch}"
+
+# Refuse to overwrite
+if [ -e "${target}" ]; then
+  printf '%s\n' "Target already exists: ${target}" >&2
+  exit 1
+fi
+
+# Create worktree + branch
+git worktree add "${target}" -b "${branch}"
+
+cat <<EOF
+
+Worktree created:
+
+  ${target}
+  branch: ${branch}
+
+Next steps:
+
+  cd ${target}
+  direnv allow
+  bin/worktree-bootstrap
+
+EOF
+
+# vim: ft=sh ts=2 sts=2 sw=2 sr et

@@ -1,0 +1,24 @@
+---
+# https://galaxy.ansible.com/ui/namespaces/ansible/
+# https://galaxy.ansible.com/ui/namespaces/community/
+
+collections:
+  - name: "ansible.netcommon"
+    version: ">=8,<9"
+
+  - name: "ansible.posix"
+    version: ">=2,<3"
+
+  - name: "ansible.utils"
+    version: ">=6,<7"
+
+  - name: "community.general"
+    version: ">=12,<13"
+
+  - name: "community.mysql"
+    version: ">=4,<5"
+
+  - name: "community.dns"
+    version: ">=3,<4"
+
+# vim: ft=yaml ts=2 sts=2 sw=2 sr et

@@ -1,0 +1,12 @@
+#!/usr/bin/env -S ansible-playbook -i hosts
+---
+- name: Print facts
+  hosts: localhost
+  gather_facts: true
+
+  tasks:
+    - name: "Print Facts"
+      ansible.builtin.debug:
+        msg: "{{ ansible_facts }}"
+
+# vim: ft=ansible.yaml ts=2 sts=2 sw=2 sr et

@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Bootstrap the current worktree:
+# - sync pinned Python deps into a per-worktree .venv
+# - install Galaxy collections into ./collections
+# - generate cached tab completions into ./.direnv/completions
+#
+# Safe to re-run.
+
+_repo_root() {
+  git rev-parse --show-toplevel 2>/dev/null || return 1
+}
+
+_need_cmd() {
+  local c="${1}"
+  command -v "${c}" >/dev/null 2>&1 || {
+    printf '%s\n' "[ERROR] Required command not found: ${c}" >&2
+    exit 127
+  }
+}
+
+main() {
+  _need_cmd git
+  _need_cmd uv
+
+  local root
+  root="$(_repo_root)" || {
+    printf '%s\n' "[ERROR] Not inside a git worktree/repo." >&2
+    exit 1
+  }
+
+  cd "${root}"
+
+  # Ensure bin scripts are executable (helps on Windows/weird filesystems)
+  if [ -d "./bin" ]; then
+    printf '%s\n' "Setting executable permissions on bin/ scripts"
+    find ./bin -type f ! -name 'README.md' -exec chmod +x {} \;
+  fi
+
+  # Ensure expected directories exist
+  mkdir -p .direnv/completions collections
+
+  printf '%s\n' "==> uv sync (per-worktree .venv)"
+
+  # Default to including dev dependencies, allow override
+  SYNC_FLAGS="${UV_SYNC_FLAGS:---dev}"
+  uv sync "${SYNC_FLAGS}"
+
+  if [ -f "collections/requirements.yml" ]; then
+    printf '%s\n' "==> ansible-galaxy collection install (./collections)"
+    uv run ansible-galaxy collection install -r collections/requirements.yml -p collections
+  else
+    printf '%s\n' "==> skipping Galaxy install (collections/requirements.yml not found)"
+  fi
+
+  # Completions are optional; only generate if argcomplete is installed.
+  if uv run python -c "import argcomplete" >/dev/null 2>&1; then
+    printf '%s\n' "==> generating cached completions"
+    uv run register-python-argcomplete --shell bash ansible > .direnv/completions/ansible.bash
+    uv run register-python-argcomplete --shell bash ansible-playbook > .direnv/completions/ansible-playbook.bash
+    uv run register-python-argcomplete --shell bash ansible-galaxy > .direnv/completions/ansible-galaxy.bash
+    uv run register-python-argcomplete --shell bash ansible-vault > .direnv/completions/ansible-vault.bash
+  else
+    printf '%s\n' "==> skipping completions (argcomplete not installed)"
+  fi
+
+  printf '%s\n' "==> done"
+}
+
+main "$@"
+
+# vim: ft=sh ts=2 sts=2 sw=2 sr et
