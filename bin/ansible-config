@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ansiule config shim - runs 'ansible-config' via uv with locked dependencies
+# ansible config shim - runs 'ansible-config' via uv with locked dependencies
 # See ./ansible for full documentation
 
 set -euo pipefail

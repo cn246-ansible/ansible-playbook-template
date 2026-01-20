@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ansiule vault shim - runs 'ansible-vault' via uv with locked dependencies
+# ansible vault shim - runs 'ansible-vault' via uv with locked dependencies
 # See ./ansible for full documentation
 
 set -euo pipefail

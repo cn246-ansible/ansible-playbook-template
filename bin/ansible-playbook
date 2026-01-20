@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ansiule playuook shim - runs 'ansible-playbook' via uv with locked dependencies
+# ansible playuook shim - runs 'ansible-playbook' via uv with locked dependencies
 # See ./ansible for full documentation
 
 set -euo pipefail

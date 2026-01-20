@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ansiule galaxy shim - runs 'ansible-galaxy' via uv with locked dependencies
+# ansible galaxy shim - runs 'ansible-galaxy' via uv with locked dependencies
 # See ./ansible for full documentation
 
 set -euo pipefail

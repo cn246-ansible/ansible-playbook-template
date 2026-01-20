@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ansiule inventory shim - runs 'ansible-inventory' via uv with locked dependencies
+# ansible inventory shim - runs 'ansible-inventory' via uv with locked dependencies
 # See ./ansible for full documentation
 
 set -euo pipefail

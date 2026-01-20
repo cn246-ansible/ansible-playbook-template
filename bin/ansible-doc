@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ansiule doc shim - runs 'ansible-doc' via uv with locked dependencies
+# ansible doc shim - runs 'ansible-doc' via uv with locked dependencies
 # See ./ansible for full documentation
 
 set -euo pipefail

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ansiule pull shim - runs 'ansible-pull' via uv with locked dependencies
+# ansible pull shim - runs 'ansible-pull' via uv with locked dependencies
 # See ./ansible for full documentation
 
 set -euo pipefail
