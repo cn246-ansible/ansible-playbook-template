@@ -39,7 +39,7 @@ main() {
   fi
 
   # Ensure expected directories exist
-  mkdir -p .direnv/completions ./ansible/collections
+  mkdir -p ".direnv/completions" "collections/ansible_collections"
 
   printf '==> uv sync (per-worktree .venv)\n'
 
