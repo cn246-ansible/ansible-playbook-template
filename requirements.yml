@@ -6,9 +6,6 @@ collections:
   - name: "ansible.netcommon"
     version: ">=8,<9"
 
-  - name: "amazon.aws"
-    version: ">=11,<12"
-
   - name: "ansible.posix"
     version: ">=2,<3"
 
