@@ -44,11 +44,26 @@ for more details on configuring your shell.
 Clone this repository or create a new repository from it using your Git hosting
 provider's template feature.
 
-From the repository root, run:
+I prefer to create a parent directory, clone this repository as "main" so the
+worktree workflow is more apparent.
+
 ```bash
+# Create parent directory
+mkdir my-playbook
+cd my-playbook
+
+# Clone this repo as `main`
+git clone git@github.com:chuckn246/ansible-playbook-template.git main
+cd main
+
+# Install and configure Ansible
 direnv allow
-bin/git-setup
-bin/worktree-bootstrap
+git-setup
+worktree-bootstrap
+
+# Verify
+ansible --version
+ansible-galaxy collection list
 ```
 
 This performs the initial setup for the current worktree:
@@ -80,14 +95,14 @@ The recommended workflow is to keep main stable and use worktrees for developmen
 ### Creating a new worktree
 From the main worktree, create a new branch and a new working directory next to the main repo:
 ```bash
-bin/worktree-create dev
+worktree-create dev
 ```
 
 Then initialize the new worktree:
 ```bash
 cd ../dev
 direnv allow
-bin/worktree-bootstrap
+worktree-bootstrap
 ```
 
 Each worktree has its own .venv, collections, and runtime state. Because `uv`
@@ -106,10 +121,10 @@ Make changes in a development worktree, for example:
 
 Merge back into main when ready:
 ```bash
-cd ../<repo>
+cd ../main
 git merge dev
 direnv allow
-bin/worktree-bootstrap
+worktree-bootstrap
 ```
 
 This rebuilds the main worktree using its own isolated environment.
