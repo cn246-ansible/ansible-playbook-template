@@ -1,4 +1,4 @@
-#!/usr/bin/env -S ansible-playbook -i hosts
+#!/usr/bin/env -S ansible-playbook -i ../hosts
 ---
 - name: Print facts
   hosts: localhost
@@ -8,5 +8,9 @@
     - name: "Print Facts"
       ansible.builtin.debug:
         msg: "{{ ansible_facts }}"
+
+#  roles:
+#    - name: "Use role from custom collection"
+#      role: "custom.collection.role"
 
 # vim: ft=ansible.yaml ts=2 sts=2 sw=2 sr et

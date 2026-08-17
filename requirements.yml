@@ -6,6 +6,9 @@ collections:
   - name: "ansible.netcommon"
     version: ">=8,<9"
 
+  - name: "amazon.aws"
+    version: ">=11,<12"
+
   - name: "ansible.posix"
     version: ">=2,<3"
 
@@ -20,5 +23,8 @@ collections:
 
   - name: "community.dns"
     version: ">=3,<4"
+
+  - name: "containers.podman"
+    version: ">=1,<2"
 
 # vim: ft=yaml ts=2 sts=2 sw=2 sr et

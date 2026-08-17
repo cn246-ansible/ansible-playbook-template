@@ -16,8 +16,9 @@ __pycache__/
 .vault-pass
 
 # Installed Ansible collections (artifacts)
-collections/*
+collections/ansible_collections/*
 !collections/requirements.yml
+!collections/README.md
 
 # Optional: editor / OS noise
 .vscode/

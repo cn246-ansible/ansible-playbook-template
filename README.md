@@ -1,5 +1,4 @@
 # Ansible Control Repository
-
 This repository is a self contained Ansible control environment designed for
 repeatable, isolated infrastructure work.
 
@@ -14,8 +13,7 @@ independent Python dependencies and Galaxy collections.
 This repository includes:
 
 - A pinned **ansible-core** version and Python dependencies managed with **uv**
-- Repo local Ansible command shims in `bin/` so no global Ansible install is required
-- Repo local Galaxy collections installed into `collections/`
+- Repo local Galaxy collections installed into `.ansible/collections/`
 - Support for custom plugins in `plugins/`
 - **direnv** based environment activation
 - Cached shell completions for Ansible commands
@@ -27,8 +25,7 @@ directory. Nothing is installed globally.
 
 
 ## Requirements
-
-The following tools must be installed on the local system:
+The following tools must be installed or available on the local system:
 
 - [uv](https://github.com/astral-sh/uv)
 - [direnv](https://github.com/direnv/direnv)
@@ -37,22 +34,7 @@ The following tools must be installed on the local system:
 
 
 ## Enable direnv
-
 **direnv** must be installed and enabled in your shell before using this repository.
-
-### Bash
-Add the following to `~/.bashrc`:
-```bash
-eval "$(direnv hook bash)"
-```
-
-### Zsh
-Add the following to `~/.zshrc`:
-```bash
-eval "$(direnv hook zsh)"
-autoload -U bashcompinit
-bashcompinit
-```
 
 Refer to the [direnv documentation](https://direnv.net/docs/installation.html)
 for more details on configuring your shell.
@@ -71,15 +53,14 @@ bin/worktree-bootstrap
 
 This performs the initial setup for the current worktree:
 
-- Creates or updates the Python virtual environment in `.venv`
-- Installs Galaxy collections into collections
-- Generates cached shell completions into `.direnv/completions`
 - Configures Git for Ansible Vault and structured diffs
+- Creates or updates the Python virtual environment in `.venv`
+- Installs Galaxy collections into `.ansible/collections`
+- Generates cached shell completions into `.direnv/completions`
 - After this completes, Ansible is ready to use.
 
 
 ### Production Deployments
-
 For production deployments where development tools aren't needed, use:
 ```bash
 UV_SYNC_FLAGS="--no-dev" bin/worktree-bootstrap
@@ -95,6 +76,7 @@ playbook execution is needed.
 ## Using Git worktrees
 The recommended workflow is to keep main stable and use worktrees for development, upgrades, and experimentation.
 
+
 ### Creating a new worktree
 From the main worktree, create a new branch and a new working directory next to the main repo:
 ```bash
@@ -103,7 +85,7 @@ bin/worktree-create dev
 
 Then initialize the new worktree:
 ```bash
-cd ../<repo>-dev
+cd ../dev
 direnv allow
 bin/worktree-bootstrap
 ```
@@ -114,7 +96,7 @@ disk space.
 
 
 ## Typical workflow
-Make changes in a development worktree
+Make changes in a development worktree, for example:
 
   - Update Python dependencies
   - Change Galaxy collection versions
@@ -135,8 +117,6 @@ This rebuilds the main worktree using its own isolated environment.
 
 ## Running Ansible
 
-Always use the repo local Ansible commands provided in `bin/`.
-
 Examples:
 ```bash
 ansible --version
@@ -145,8 +125,8 @@ ansible-galaxy collection list
 ansible-vault edit roles/my_role/files/secret.vault.yml
 ```
 
-Commands can be run from any directory inside the worktree thanks to direnv
-prepending the bin directory to `PATH`.
+Commands can be run from any directory inside the worktree thanks to **direnv**
+prepending the `.venv/bin` directory to `PATH`.
 
 
 ## Vault integration
@@ -170,12 +150,13 @@ Vaulted files can be:
 ## Repository layout
 Key directories include:
 
-- `roles/` for Ansible roles
+- `.ansible/collections/` for Galaxy collections defined by `requirements.yml`
+- `collections/` for symlinks to custom or local collections - useful for development
+- `roles/` for local or custom Ansible roles - useful for development
 - `group_vars/` and `host_vars/` for inventory variables
 - `plugins/` for custom Ansible plugins
-- `collections/` for Galaxy collections defined by `requirements.yml`
 
-Each of these directories contains a README describing its intended use.
+Most of these directories contains a README describing its intended use.
 
 
 ---

@@ -13,9 +13,9 @@ _repo_root() {
 }
 
 _need_cmd() {
-  local c="${1}"
-  command -v "${c}" >/dev/null 2>&1 || {
-    printf '%s\n' "[ERROR] Required command not found: ${c}" >&2
+  local app="${1}"
+  command -v "${app}" >/dev/null 2>&1 || {
+    printf '[ERROR] Required command not found: %s\n' "${app}" >&2
     exit 127
   }
 }
@@ -26,7 +26,7 @@ main() {
 
   local root
   root="$(_repo_root)" || {
-    printf '%s\n' "[ERROR] Not inside a git worktree/repo." >&2
+    printf '[ERROR] Not inside a git worktree/repo.\n' >&2
     exit 1
   }
 
@@ -34,38 +34,38 @@ main() {
 
   # Ensure bin scripts are executable (helps on Windows/weird filesystems)
   if [ -d "./bin" ]; then
-    printf '%s\n' "Setting executable permissions on bin/ scripts"
-    find ./bin -type f ! -name 'README.md' -exec chmod +x {} \;
+    printf 'Setting executable permissions on bin/ scripts\n'
+    find ./bin -type f ! -name 'README.md' -exec chmod 0750 {} \;
   fi
 
   # Ensure expected directories exist
-  mkdir -p .direnv/completions collections
+  mkdir -p .direnv/completions ./ansible/collections
 
-  printf '%s\n' "==> uv sync (per-worktree .venv)"
+  printf '==> uv sync (per-worktree .venv)\n'
 
   # Default to including dev dependencies, allow override
   SYNC_FLAGS="${UV_SYNC_FLAGS:---dev}"
   uv sync "${SYNC_FLAGS}"
 
-  if [ -f "collections/requirements.yml" ]; then
-    printf '%s\n' "==> ansible-galaxy collection install (./collections)"
-    uv run ansible-galaxy collection install -r collections/requirements.yml -p collections
+  if [ -f "requirements.yml" ]; then
+    printf '==> ansible-galaxy collection install (./.ansible/collections)\n'
+    uv run ansible-galaxy collection install -r requirements.yml -p .ansible/collections
   else
-    printf '%s\n' "==> skipping Galaxy install (collections/requirements.yml not found)"
+    printf '==> skipping Galaxy install (requirements.yml not found)\n'
   fi
 
   # Completions are optional; only generate if argcomplete is installed.
   if uv run python -c "import argcomplete" >/dev/null 2>&1; then
-    printf '%s\n' "==> generating cached completions"
+    printf '==> generating cached completions\n'
     uv run register-python-argcomplete --shell bash ansible > .direnv/completions/ansible.bash
     uv run register-python-argcomplete --shell bash ansible-playbook > .direnv/completions/ansible-playbook.bash
     uv run register-python-argcomplete --shell bash ansible-galaxy > .direnv/completions/ansible-galaxy.bash
     uv run register-python-argcomplete --shell bash ansible-vault > .direnv/completions/ansible-vault.bash
   else
-    printf '%s\n' "==> skipping completions (argcomplete not installed)"
+    printf '==> skipping completions (argcomplete not installed)\n'
   fi
 
-  printf '%s\n' "==> done"
+  printf '==> done\n'
 }
 
 main "$@"
