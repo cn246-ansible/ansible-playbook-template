@@ -6,31 +6,34 @@ It provides a fixed Ansible and Python runtime, repo local tooling, and a
 workflow built around Git worktrees so that experimentation does not affect
 stable configurations.
 
-The intent is that each branch can act as its own Ansible control plane with
-independent Python dependencies and Galaxy collections.
-
+The intent is that each worktree acts as its own Ansible control plane with an
+independent Python environment, installed Galaxy collections, and Ansible runtime
+state.
 
 This repository includes:
+  * A pinned `ansible-core` version and Python dependencies managed with `uv`
+  * Galaxy collections installed per worktree into `.ansible/collections/`
+  * Custom or locally developed collections available through `collections/`
+  * Support for custom plugins in `plugins/`
+  * `direnv` based environment activation
+  * Cached shell completions for `ansible` commands
+  * Git integration for Ansible Vault, including diff, merge, and grep support
+  * First class support for Git worktrees
 
-- A pinned **ansible-core** version and Python dependencies managed with **uv**
-- Repo local Galaxy collections installed into `.ansible/collections/`
-- Support for custom plugins in `plugins/`
-- **direnv** based environment activation
-- Cached shell completions for Ansible commands
-- Git integration for Ansible Vault, including diff, merge, and grep support
-- First class support for Git worktrees
+Python packages are cached by `uv` and can therefore be shared between worktrees.
+Galaxy collections are not shared between worktrees; each worktree installs its
+own copy into `.ansible/collections/`.
 
-All state required to run Ansible lives inside the repository or the user home
-directory. Nothing is installed globally.
+Ansible runtime state required by a worktree lives inside the worktree or the
+user's home directory. Nothing is installed globally.
 
 
 ## Requirements
 The following tools must be installed or available on the local system:
-
-- [uv](https://github.com/astral-sh/uv)
-- [direnv](https://github.com/direnv/direnv)
-- SSH access to target hosts
-- A local Ansible Vault password file at: `~/.ansible-vault-pass`
+  * [uv](https://github.com/astral-sh/uv)
+  * [direnv](https://github.com/direnv/direnv)
+  * SSH access to target hosts
+  * A local Ansible Vault password file at: `~/.ansible-vault-pass`
 
 
 ## Enable direnv
@@ -66,13 +69,12 @@ ansible --version
 ansible-galaxy collection list
 ```
 
-This performs the initial setup for the current worktree:
-
-- Configures Git for Ansible Vault and structured diffs
-- Creates or updates the Python virtual environment in `.venv`
-- Installs Galaxy collections into `.ansible/collections`
-- Generates cached shell completions into `.direnv/completions`
-- After this completes, Ansible is ready to use.
+This initializes the current worktree's local Ansible environment:
+  * Configures Git for Ansible Vault and structured diffs
+  * Creates or updates the Python virtual environment in `.venv`
+  * Installs Galaxy collections into `.ansible/collections`
+  * Generates cached shell completions into `.direnv/completions`
+  * After this completes, Ansible is ready to use.
 
 
 ### Production Deployments
@@ -84,8 +86,8 @@ UV_SYNC_FLAGS="--no-dev" bin/worktree-bootstrap
 This skips installing `ansible-lint`, `yamllint` and other development dependencies,
 resulting in a faster, smaller installation.
 
-Use production mode in CI/CD pipelines or when deploying to servers where only
-playbook execution is needed.
+Use production mode in CI/CD pipelines or on control hosts where only playbook
+execution is required.
 
 
 ## Using Git worktrees
@@ -112,11 +114,10 @@ disk space.
 
 ## Typical workflow
 Make changes in a development worktree, for example:
-
-  - Update Python dependencies
-  - Change Galaxy collection versions
-  - Add or modify plugins
-  - Test playbooks
+  * Update Python dependencies
+  * Change Galaxy collection versions
+  * Add or modify plugins
+  * Test playbooks
 
 
 Merge back into main when ready:
@@ -149,30 +150,36 @@ prepending the `.venv/bin` directory to `PATH`.
 This repository is configured to work directly with Ansible Vault.
 
 Vaulted files can be:
-
-- **Viewed with `git diff`** - Decrypted content shown in terminal (not written to disk)
-- **Searched with `git grep`** - Search inside encrypted files (decryption happens in memory via pipe)
-- **Merged with custom driver** - Decrypts, merges, and re-encrypts automatically
+  * **Viewed with `git diff`** - Decrypted content shown in terminal (not written to disk)
+  * **Searched with `git grep`** - Search inside encrypted files (decryption happens in memory via pipe)
+  * **Merged with custom driver** - Decrypts, merges, and re-encrypts automatically
 
 
 **Security Notes:**
-- `git diff` and `git grep` process decrypted content through pipes (no disk writes)
-- The merge driver temporarily writes decrypted content to `$TMPDIR`, then securely deletes it
-- Plaintext secrets are never committed to Git history
-- On shared/untrusted systems, set `TMPDIR` to an encrypted location before merging
+  * `git diff` and `git grep` process decrypted content through pipes (no disk writes)
+  * The merge driver temporarily writes decrypted content to `$TMPDIR`, then securely deletes it
+  * Plaintext secrets are never committed to Git history
+  * On shared/untrusted systems, set `TMPDIR` to an encrypted location before merging
 
 
 ## Repository layout
 Key directories include:
 
-- `.ansible/collections/` for Galaxy collections defined by `requirements.yml`
-- `collections/` for symlinks to custom or local collections - useful for development
-- `roles/` for local or custom Ansible roles - useful for development
-- `group_vars/` and `host_vars/` for inventory variables
-- `plugins/` for custom Ansible plugins
+  * `.ansible/collections/` for Galaxy collections installed from `requirements.yml`
+  * `.direnv/` for generated direnv state and cached shell completions
+  * `.venv/` for the worktree-local Python environment
+  * `collections/` for symlinks to custom or locally developed collections
+  * `group_vars/` and `host_vars/` for inventory variables
+  * `plugins/` for custom Ansible plugins
+  * `roles/` for local or custom Ansible roles - useful for development
 
-Most of these directories contains a README describing its intended use.
+Galaxy collections installed into `.ansible/collections/` are not committed to
+Git and are not shared between worktrees. Each worktree installs its own copy.
 
+Custom collections referenced through `collections/` are maintained outside this
+repository and may have their own Git repository.
+
+Most of these directories contain a README describing their intended use.
 
 ---
 
@@ -187,17 +194,17 @@ merged deliberately.
 ## References
 
 ### Essential Documentation
-- [Ansible Docs](https://docs.ansible.com/) - Official Ansible documentation
-- [uv Documentation](https://docs.astral.sh/uv/) - Python package manager
-- [direnv](https://direnv.net/) - Environment management
-- [Git Attributes](https://git-scm.com/docs/gitattributes) - Git path-specific configuration
+  * [Ansible Docs](https://docs.ansible.com/) - Official Ansible documentation
+  * [uv Documentation](https://docs.astral.sh/uv/) - Python package manager
+  * [direnv](https://direnv.net/) - Environment management
+  * [Git Attributes](https://git-scm.com/docs/gitattributes) - Git path-specific configuration
 
 ### Tools & Utilities
-- [ansible-lint](https://ansible.readthedocs.io/projects/lint/) - Playbook linting
-- [ShellCheck](https://www.shellcheck.net/) - Shell script analysis
-- [Ansible Galaxy](https://galaxy.ansible.com/) - Community collections
+  * [ansible-lint](https://ansible.readthedocs.io/projects/lint/) - Playbook linting
+  * [ShellCheck](https://www.shellcheck.net/) - Shell script analysis
+  * [Ansible Galaxy](https://galaxy.ansible.com/) - Community collections
 
 ### Learning Resources
-- [Ansible for DevOps](https://www.ansiblefordevops.com/) - Comprehensive Ansible book
-- [Pro Git Book](https://git-scm.com/book/en/v2) - Free Git guide
-- [Ansible Forum](https://forum.ansible.com/) - Community support
+  * [Ansible for DevOps](https://www.ansiblefordevops.com/) - Comprehensive Ansible book
+  * [Pro Git Book](https://git-scm.com/book/en/v2) - Free Git guide
+  * [Ansible Forum](https://forum.ansible.com/) - Community support

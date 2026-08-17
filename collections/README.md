@@ -1,52 +1,69 @@
 # Ansible Collections
+This directory provides the Ansible collection search path for this playbook
+repository.
 
-This directory manages Ansible collections for this playbook using `ansible-galaxy`.
+It serves two purposes:
+
+1. Locally developed collections can be made available to Ansible through
+   symlinks in `collections/ansible_collections/`.
+2. Galaxy collections installed from the repository's top-level
+   `requirements.yml` are installed into `.ansible/collections/`.
 
 
 ## Overview
+Galaxy collections are dependencies of the control repository. Their version
+constraints are defined in the top-level `requirements.yml` and the collections
+are installed into the worktree's `.ansible/collections/` directory.
 
-Collections are installed from [Ansible Galaxy](https://galaxy.ansible.com/)
-based on the version constraints defined in `requirements.yml`. The actual
-collection files are **not committed to git** - only the requirements file is
-tracked.
+Installed Galaxy collections are not committed to Git and are not shared
+between worktrees. Each worktree installs its own copy.
+
+Locally developed collections are different. They are maintained separately
+from the playbook repository and can be linked into this directory during
+development.
 
 
 ## Structure
 ```
-collections/
-├── README.md              # This file
-├── requirements.yml       # Collection dependencies (tracked in git)
-└── ansible_collections/   # Installed collections (gitignored)
-    ├── my_collection/
-    │   ├── netcommon/
-    │   ├── posix/
-    │   └── utils/
-    └── community/
-        ├── dns/
-        ├── general/
-        └── mysql/
+repo_root
+    ├── requirements.yml
+    ├── .ansible/
+    │   └── collections/
+    │       └── ansible_collections/
+    │           └── <namespace>/
+    │               └── <collection>
+    └── collections/
+        └── ansible_collections/
+            └── <namespace>/
+                └── <collection> -> /path/to/local/collection
 ```
 
+The top-level `requirements.yml` defines Galaxy dependencies.
 
-## Installing Collections
+The `.ansible/collections/` directory contains collections installed for the
+current worktree.
 
-Collections are automatically installed when you run Ansible commands via the
-`./bin` shims, or you can manually install them:
+The `collections/ansible_collections/` directory contains locally developed
+collections made available through the configured Ansible collection search
+path.
 
+
+## Installing Galaxy Collections
+Galaxy collections are defined in the repository's top-level `requirements.yml`.
+
+From the repository root:
 ```bash
-# Install all collections defined in requirements.yml
+# Install all Galaxy collections
 ansible-galaxy collection install -r requirements.yml
 
-# Or using the shim (recommended - ensures correct uv environment)
-./bin/ansible-galaxy collection install -r requirements.yml
-
-# Force reinstall/upgrade collections
+# Force reinstall
 ansible-galaxy collection install -r requirements.yml --force
+
+# bin/worktree-bootstrap handles this automatically for new worktrees
 ```
 
 
 ## Current Collections
-
 The following collections are defined in `requirements.yml`:
 
 | Collection | Version Constraint | Purpose |
@@ -57,10 +74,10 @@ The following collections are defined in `requirements.yml`:
 | `community.general` | `>=12,<13` | General-purpose community modules |
 | `community.mysql` | `>=4,<5` | MySQL/MariaDB database management |
 | `community.dns` | `>=3,<4` | DNS management modules |
+| `containers.podman` | ">=1,<2" | Container management for testing with molecule |
 
 
 ## Adding New Collections
-
 1. **Find the collection** on [Ansible Galaxy](https://galaxy.ansible.com/)
 
 2. **Add to `requirements.yml`**:
@@ -79,13 +96,12 @@ ansible-galaxy collection install -r requirements.yml
 
 4. **Commit only the requirements file**:
 ```bash
-git add collections/requirements.yml
+git add requirements.yml
 git commit -m "Add community.docker collection"
 ```
 
 
 ## Version Constraints
-
 We use **optimistic version constraints** to balance stability and updates:
 ```yaml
 # Recommended: Allow minor/patch updates, prevent breaking changes
@@ -101,8 +117,8 @@ We use **optimistic version constraints** to balance stability and updates:
   # No version specified - uses latest
 ```
 
-**Best practice**: Use `>=X,<Y` where `Y = X + 1` to allow minor/patch updates
-while preventing major version changes.
+Use `>=X,<Y` where `Y = X + 1` to allow minor/patch updates while preventing
+major version changes.
 
 
 ## Verifying Installed Collections
@@ -132,54 +148,50 @@ ansible-galaxy collection list | grep -E 'ansible|community'
 
 
 ## Troubleshooting
-
 ### Collections Not Found
-
 If Ansible can't find collections, check the search path:
 ```bash
-# Verify collections_path in ansible.cfg
-grep collections_path ../ansible.cfg
-# Should show: collections_path = ./collections
+ansible-config dump | grep COLLECTIONS_PATHS
 
-# Verify collections are installed
-ls -la ansible_collections/
+# Locally developed collections
+ls -al collections/ansible_collections/
+
+# Galaxy-installed collections
+ls -al .ansible/collections/ansible_collections/
 ```
 
 
 ### Version Conflicts
-
 If you encounter version conflicts:
 ```bash
 # Force reinstall with correct versions
 ansible-galaxy collection install -r requirements.yml --force
 
 # Or remove and reinstall
-rm -rf ansible_collections/
+rm -rf .ansible/collections/
 ansible-galaxy collection install -r requirements.yml
 ```
 
 
 ### Permission Issues
-
 If installation fails with permission errors:
 ```bash
 # Ensure you're using the project's ansible-galaxy shim
 which ansible-galaxy
-# Should show: ./bin/ansible-galaxy
+# Should show: .venv/bin/ansible-galaxy
 
 # Or verify collections_path is writable
-ls -ld ./collections/
+ls -dl ./collections/
 ```
 
 
 ## CI/CD Integration
-
 For Bamboo/Octopus pipelines, install collections before running playbooks:
 ```bash
 # In your deployment script:
 cd /path/to/ansible/project
-./bin/ansible-galaxy collection install -r collections/requirements.yml
-./bin/ansible-playbook site.yml
+worktree-bootstrap
+ansible-playbook site.yml
 ```
 
 Or use a pre-deployment task:
@@ -187,13 +199,12 @@ Or use a pre-deployment task:
 # bamboo-specs/deployment.yml
 - script: |
     cd ${bamboo.build.working.directory}
-    ./bin/ansible-galaxy collection install -r collections/requirements.yml --force
+	worktree-bootstrap
 ```
 
 
 ## Development Workflow
-
-1. **Developer adds a new collection**:
+1. **Developer adds a new collection** (in repository root):
 ```bash
 # Edit requirements.yml
 vim requirements.yml
@@ -202,22 +213,38 @@ vim requirements.yml
 ansible-galaxy collection install -r requirements.yml
 
 # Test playbook with new collection
-ansible-playbook test.yml
+ansible-playbook playbooks/test.yml
 
 # Commit only requirements.yml
 git add requirements.yml
 git commit -m "Add community.docker for container management"
 ```
 
-2. **Team member pulls changes**:
+2. **Team member pulls changes** (also in repository root):
 ```bash
 git pull
 
 # direnv automatically uses project config, just install collections
 ansible-galaxy collection install -r requirements.yml
 
-# Or if using automation, it's handled automatically
+# bin/worktree-bootstrap handles this automatically for new worktrees
 ```
+
+
+## Notes
+- Galaxy collections are installed to `.ansible/collections/ansible_collections/`
+  for the current worktree.
+- Locally developed collections are made available through
+  `collections/ansible_collections/`, typically using symlinks.
+- Installed Galaxy collections are gitignored and are not committed to the
+  repository.
+- Galaxy collections are not shared between Git worktrees; each worktree
+  installs its own copy.
+- Always test playbooks after updating collections, especially after major
+  version updates.
+- For production deployments, consider pinning collections to specific
+  versions for reproducibility.
+
 
 ## References
 
@@ -225,11 +252,3 @@ ansible-galaxy collection install -r requirements.yml
 - [Ansible Galaxy](https://galaxy.ansible.com/)
 - [Collection Requirements File](https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#installing-collections-with-ansible-galaxy)
 - [Semantic Versioning](https://semver.org/)
-
-
-## Notes
-
-- Collections are installed to `./collections/ansible_collections/` as specified in `ansible.cfg`
-- The `ansible_collections/` directory is gitignored to avoid bloating the repository
-- Always test playbooks after updating collections, especially major version updates
-- For production deployments, consider pinning to specific versions for reproducibility
