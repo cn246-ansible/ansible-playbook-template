@@ -56,7 +56,7 @@ mkdir my-playbook
 cd my-playbook
 
 # Clone this repo as `main`
-git clone git@github.com:chuckn246/ansible-playbook-template.git main
+git clone git@github.com:chuckn246/ansible-control-template.git main
 cd main
 
 # Install and configure Ansible
