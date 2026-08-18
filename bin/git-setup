@@ -11,8 +11,8 @@
 #   ./git-setup
 #
 # Requirements:
-#   - ansible-vault binary (via ./bin/ansible-vault shim)
-#   - ansible-vault-merge script (via ./bin/ansible-vault-merge)
+#   - ansible-vault binary
+#   - ansible-vault-merge script
 #
 # See .gitattributes for file pattern matching
 
@@ -30,15 +30,15 @@ printf '%s\n' "Configuring local git settings for Ansible..."
 git config --local diff.ansible.xfuncname '^\s*\[.*\]$'
 
 # Ansible Vault diff driver - decrypt vaults for readable diffs
-git config --local diff.ansible-vault.textconv "./bin/ansible-vault view"
+git config --local diff.ansible-vault.textconv "ansible-vault view"
 git config --local diff.ansible-vault.cachetextconv false
 
 # Ansible Vault grep - search inside encrypted files
-git config --local grep.ansible-vault.command "./bin/ansible-vault view"
+git config --local grep.ansible-vault.command "ansible-vault view"
 
 # Ansible Vault merge driver - merge encrypted files intelligently
 git config --local merge.ansible-vault.name "Ansible Vault merge driver"
-git config --local merge.ansible-vault.driver "./bin/ansible-vault-merge %O %A %B %L %P"
+git config --local merge.ansible-vault.driver "ansible-vault-merge %O %A %B %L %P"
 
 # Optional: Set up ansible-lint as a pre-commit hook helper
 # git config --local core.hooksPath .githooks
