@@ -1,4 +1,5 @@
 # Ansible Control Repository
+
 This repository is a self contained Ansible control environment designed for
 repeatable, isolated infrastructure work.
 
@@ -29,6 +30,7 @@ user's home directory. Nothing is installed globally.
 
 
 ## Requirements
+
 The following tools must be installed or available on the local system:
   * [uv](https://github.com/astral-sh/uv)
   * [direnv](https://github.com/direnv/direnv)
@@ -37,6 +39,7 @@ The following tools must be installed or available on the local system:
 
 
 ## Enable direnv
+
 **direnv** must be installed and enabled in your shell before using this repository.
 
 Refer to the [direnv documentation](https://direnv.net/docs/installation.html)
@@ -44,6 +47,7 @@ for more details on configuring your shell.
 
 
 ## Getting started
+
 Clone this repository or create a new repository from it using your Git hosting
 provider's template feature.
 
@@ -76,8 +80,8 @@ This initializes the current worktree's local Ansible environment:
   * Generates cached shell completions into `.direnv/completions`
   * After this completes, Ansible is ready to use.
 
-
 ### Production Deployments
+
 For production deployments where development tools aren't needed, use:
 ```bash
 UV_SYNC_FLAGS="--no-dev" bin/worktree-bootstrap
@@ -91,10 +95,11 @@ execution is required.
 
 
 ## Using Git worktrees
+
 The recommended workflow is to keep main stable and use worktrees for development, upgrades, and experimentation.
 
-
 ### Creating a new worktree
+
 From the main worktree, create a new branch and a new working directory next to the main repo:
 ```bash
 worktree-create dev
@@ -113,12 +118,12 @@ disk space.
 
 
 ## Typical workflow
+
 Make changes in a development worktree, for example:
   * Update Python dependencies
   * Change Galaxy collection versions
   * Add or modify plugins
   * Test playbooks
-
 
 Merge back into main when ready:
 ```bash
@@ -136,9 +141,9 @@ This rebuilds the main worktree using its own isolated environment.
 Examples:
 ```bash
 ansible --version
-ansible-playbook site.yml
+ansible-playbook playbooks/site.yml
 ansible-galaxy collection list
-ansible-vault edit roles/my_role/files/secret.vault.yml
+ansible-vault edit group_vars/my_group/secret.vault.yml
 ```
 
 Commands can be run from any directory inside the worktree thanks to **direnv**
@@ -162,7 +167,92 @@ Vaulted files can be:
   * On shared/untrusted systems, set `TMPDIR` to an encrypted location before merging
 
 
+## Linting and pre-commit checks
+
+This repository uses classic Git hooks (not the pre-commit framework) to run
+quality checks before each commit. The hooks are installed automatically by
+`git-setup`.
+
+### What runs on commit
+
+1. **Vault encryption check** (`bin/pre-commit_ansible-vault`)
+   Rejects the commit if any staged file whose name matches `*vault*` is not
+   encrypted with Ansible Vault. It inspects the **staged** content (the index),
+   not the working-tree copy, so it correctly catches the case where plaintext
+   was staged and the file was later re-encrypted on disk without being re-added.
+
+2. **ansible-lint** (when available on `PATH`)
+   Runs the project’s Ansible best-practice and style checks. Configuration
+   lives in `.ansible-lint`. Paths such as `collections/`, `.ansible/`, `.venv/`
+   and vault files are excluded so local test collections and encrypted secrets
+   are not linted.
+
+### Installation
+
+The pre-commit hook is installed when you run:
+```bash
+git-setup
+```
+
+This writes a small wrapper to `.git/hooks/pre-commit` that calls the checks
+above. Re-run `git-setup` after cloning a new worktree or if you ever delete
+the hook.
+
+### Configuration files
+
+| File | Purpose |
+|------|---------|
+| `.ansible-lint` | ansible-lint profile, exclude paths, rule skips |
+| `.yamllint` | YAML style rules (also used by ansible-lint’s internal YAML checks) |
+| `bin/pre-commit_ansible-vault` | POSIX script that enforces Vault encryption |
+
+`direnv` points yamllint at the project config automatically:
+```bash
+export YAMLLINT_CONFIG_FILE="${PROJECT_ROOT}/.yamllint"
+```
+
+When you leave the directory, direnv restores the previous value.
+
+### Manual runs
+
+```bash
+# Vault check only (staged files, or pass filenames explicitly)
+bin/pre-commit_ansible-vault
+bin/pre-commit_ansible-vault path/to/vault.yml
+
+# ansible-lint
+uv run ansible-lint
+# or simply, once the venv is active:
+ansible-lint
+
+# yamllint
+yamllint .
+```
+
+### Bypassing the checks
+
+For exceptional cases:
+```bash
+git commit --no-verify
+```
+
+Use sparingly. The vault check exists to prevent accidental commits of
+plaintext secrets.
+
+### Production / CI note
+
+Development dependencies (`ansible-lint`, `yamllint`) are omitted when you
+bootstrap with:
+```bash
+UV_SYNC_FLAGS="--no-dev" bin/worktree-bootstrap
+```
+
+In that mode the vault encryption check still runs (it is a pure shell script).
+ansible-lint is skipped automatically because the command is not on `PATH`.
+
+
 ## Repository layout
+
 Key directories include:
 
   * `.ansible/collections/` for Galaxy collections installed from `requirements.yml`
@@ -194,17 +284,20 @@ merged deliberately.
 ## References
 
 ### Essential Documentation
+
   * [Ansible Docs](https://docs.ansible.com/) - Official Ansible documentation
   * [uv Documentation](https://docs.astral.sh/uv/) - Python package manager
   * [direnv](https://direnv.net/) - Environment management
   * [Git Attributes](https://git-scm.com/docs/gitattributes) - Git path-specific configuration
 
 ### Tools & Utilities
+
   * [ansible-lint](https://ansible.readthedocs.io/projects/lint/) - Playbook linting
   * [ShellCheck](https://www.shellcheck.net/) - Shell script analysis
   * [Ansible Galaxy](https://galaxy.ansible.com/) - Community collections
 
 ### Learning Resources
+
   * [Ansible for DevOps](https://www.ansiblefordevops.com/) - Comprehensive Ansible book
   * [Pro Git Book](https://git-scm.com/book/en/v2) - Free Git guide
   * [Ansible Forum](https://forum.ansible.com/) - Community support
