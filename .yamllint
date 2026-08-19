@@ -1,0 +1,43 @@
+---
+extends: default
+
+ignore: |
+  .ansible/
+  .cache/
+  .direnv/
+  .git/
+  .venv/
+  collections/
+  **/collections/
+  bin/
+
+rules:
+  braces:
+    level: warning
+    max-spaces-inside: 1
+    min-spaces-inside: 0
+
+  comments:
+    min-spaces-from-content: 1
+
+  comments-indentation: false
+
+  empty-values:
+    forbid-in-block-mappings: false
+    forbid-in-flow-mappings: true
+
+  key-ordering: disable
+
+  line-length:
+    level: warning
+    max: 180
+
+  octal-values:
+    forbid-explicit-octal: true
+    forbid-implicit-octal: true
+
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
+
+# vim: ft=yaml ts=2 sts=2 sw=2 sr et

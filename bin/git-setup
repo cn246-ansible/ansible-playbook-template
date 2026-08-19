@@ -20,11 +20,11 @@ set -euo pipefail
 
 # Verify we're in a git repository
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
-  printf '%s\n' "[ERROR] Not in a git repository. Run 'git init' first." >&2
+  printf '[ERROR] Not in a git repository. Run "git init" first.\n' >&2
   exit 1
 fi
 
-printf '%s\n' "Configuring local git settings for Ansible..."
+printf 'Configuring local git settings for Ansible...\n'
 
 # Ansible inventory diff driver - shows [section] headers in diff context
 git config --local diff.ansible.xfuncname '^\s*\[.*\]$'
@@ -40,9 +40,31 @@ git config --local grep.ansible-vault.command "ansible-vault view"
 git config --local merge.ansible-vault.name "Ansible Vault merge driver"
 git config --local merge.ansible-vault.driver "ansible-vault-merge %O %A %B %L %P"
 
-# Optional: Set up ansible-lint as a pre-commit hook helper
-# git config --local core.hooksPath .githooks
+printf 'Configuring git hooks\n'
 
-printf '%s\n' "Git configuration complete!"
+HOOK_DIR="$(git rev-parse --git-dir)/hooks"
+mkdir -p "${HOOK_DIR}"
+
+cat > "${HOOK_DIR}/pre-commit" << 'EOF'
+#!/bin/sh
+set -eu
+
+# Always run from the worktree root
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+# Vault check
+if [ -x bin/pre-commit_ansible-vault ]; then
+  bin/pre-commit_ansible-vault
+fi
+
+# ansible-lint
+if command -v ansible-lint >/dev/null 2>&1; then
+  ansible-lint
+fi
+EOF
+
+chmod 0755 "${HOOK_DIR}/pre-commit"
+
+printf 'Git configuration complete!\n'
 
 # vim: ft=sh ts=2 sts=2 sw=2 sr et

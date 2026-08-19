@@ -1,0 +1,39 @@
+---
+enable_list:
+  - empty-string-compare
+  - no-log-password            # warn about missing no_log on password tasks
+  # - args
+  # - no-same-owner
+
+# Paths that should never be linted
+exclude_paths:
+  - .ansible/          # installed Galaxy collections (per-worktree)
+  - .cache/            # ansible-lint's own cache (also implicit)
+  - .config/
+  - .direnv/
+  - .git/
+  - .venv/             # uv virtualenv
+  - collections/       # local/test collection symlinks
+  - bin/               # shell scripts, not Ansible content
+  # - molecule/
+
+# Optional: keep the output quieter in normal use
+# quiet: true
+
+# Offline mode avoids trying to download collections/schemas at lint time.
+offline: true
+
+# Switch to "safety" or "production" for stricter checks.
+profile: moderate
+
+# Remove items from this list as you tighten standards.
+skip_list:
+  - yaml[line-length]          # long lines are common in vars / Jinja
+
+# Optional: treat warnings as failures (useful in CI)
+# strict: true
+
+# Use the built-in rule set
+use_default_rules: true
+
+# vim: ft=yaml ts=2 sts=2 sw=2 sr et

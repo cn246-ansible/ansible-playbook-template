@@ -1,0 +1,83 @@
+#!/bin/sh
+
+# POSIX sh version - no bash-specific features (arrays, [[ ]], process
+# substitution, pipefail, or GNU grep's -z) so this runs under dash,
+# BSD sh, or any strict POSIX shell, not just bash.
+#
+# Dual-mode, same as the bash version: pre-commit-framework calls this
+# with staged filenames as arguments; a traditional git hook install
+# calls it with none, so it self-discovers staged files via git diff.
+#
+# Design notes for anyone porting further:
+# - No arrays: file lists are routed through temp files instead of
+#   collected into shell arrays, since POSIX sh has none.
+# - No process substitution (`<(...)`)): also not POSIX. Temp files
+#   double as the fix for this too.
+# - Piping into `while read` (`cmd | while read ...`) runs the loop in a
+#   subshell in POSIX sh, so variables set inside it (like exit_status)
+#   would silently vanish once the loop ends. Redirecting FROM a real
+#   file (`done < "$tmpfile"`) avoids that subshell entirely.
+# - No `set -o pipefail` - POSIX has no equivalent. Not a correctness
+#   gap here specifically: if `git show` fails, it produces empty
+#   output, which fails the subsequent grep check anyway, so the
+#   pipeline still fails closed (flags the file as suspect) either way.
+
+set -eu
+
+FILES_PATTERN='.*vault.*\..*$'
+# shellcheck disable=SC2016
+REQUIRED='$ANSIBLE_VAULT'
+exit_status=0
+
+code_red() { tput setaf 1 2>/dev/null || true; printf '%s\n' "$1"; tput sgr0 2>/dev/null || true; }
+code_yel() { tput setaf 3 2>/dev/null || true; printf '%s\n' "$1"; tput sgr0 2>/dev/null || true; }
+
+# mktemp isn't formally in the POSIX utility list, but it's universally
+# present in practice (GNU, BSD, macOS, busybox all ship it) - flagging
+# this honestly rather than claiming textbook-pure POSIX. If you want to
+# avoid even that dependency, `tmpfile="/tmp/vault-check.$$"` (using the
+# POSIX-specified $$ pid variable) is the fully-portable alternative,
+# at the minor cost of a predictable filename.
+tmpfile=$(mktemp) || exit 1
+report_file=$(mktemp) || exit 1
+trap 'rm -f "$tmpfile" "$report_file"' EXIT
+
+if [ "$#" -gt 0 ]; then
+  # pre-commit framework mode: filenames already filtered and supplied.
+  for f in "$@"; do
+    printf '%s\n' "$f"
+  done > "$tmpfile"
+else
+  # Standalone git hook mode: discover staged, non-deleted files
+  # ourselves, case-insensitively so Vault.yml/VAULT.yml can't slip
+  # through on a technicality.
+  git diff --cached --diff-filter=d --name-only | grep -iE "${FILES_PATTERN}" > "${tmpfile}" || true
+fi
+
+while IFS= read -r file; do
+  [ -z "${file}" ] && continue
+  # Read the STAGED content (git index), not the working-tree copy - see
+  # the bash version's comments for why this matters.
+  if ! git show ":${file}" 2>/dev/null | head -n 1 | grep -qF "${REQUIRED}"; then
+    printf '%s\n' "${file}" >> "${report_file}"
+    exit_status=1
+  fi
+done < "${tmpfile}"
+
+if [ "${exit_status}" -ne 0 ]; then
+  printf '\n'
+  code_red "[ERROR] COMMIT REJECTED!"
+  printf '\n'
+  printf 'Unencrypted vault files found:\n'
+  while IFS= read -r file; do
+    code_yel " ${file}"
+  done < "${report_file}"
+  printf '\n'
+  printf 'Fix: ansible-vault encrypt <file>\n'
+  printf 'Bypass: git commit --no-verify\n'
+  printf '\n'
+fi
+
+exit "${exit_status}"
+
+# vim: ft=sh ts=2 sts=2 sw=2 sr et

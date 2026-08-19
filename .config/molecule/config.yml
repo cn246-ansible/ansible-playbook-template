@@ -1,0 +1,108 @@
+---
+# https://docs.ansible.com/projects/molecule/configuration/#dependency
+dependency:
+  name: galaxy
+
+# https://docs.ansible.com/projects/molecule/pre-ansible-native/#driver
+# https://docs.ansible.com/projects/molecule/configuration/#driver-pre-ansible-native
+driver:
+  name: podman
+  options:
+    managed: true
+
+# https://docs.ansible.com/projects/molecule/configuration/#prerun
+prerun: false
+
+# https://docs.ansible.com/projects/molecule/configuration/#platforms-pre-ansible-native
+platforms:
+  - name: debian-12
+    image: geerlingguy/docker-debian12-ansible:latest
+    command: &systemd_command /lib/systemd/systemd
+    volumes: &cgroup_volumes
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    pre_build_image: &pre_build_image true
+    privileged: &privileged true
+    cgroupns_mode: &cgroupns_mode host
+    capabilities: &sys_admin_caps
+      - SYS_ADMIN
+
+  - name: ubuntu-22-04
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    command: *systemd_command
+    volumes: *cgroup_volumes
+    pre_build_image: *pre_build_image
+    privileged: *privileged
+    cgroupns_mode: *cgroupns_mode
+    capabilities: *sys_admin_caps
+
+  - name: amazon-2023
+    image: geerlingguy/docker-amazonlinux2023-ansible:latest
+    command: *systemd_command
+    volumes: *cgroup_volumes
+    pre_build_image: *pre_build_image
+    privileged: *privileged
+    cgroupns_mode: *cgroupns_mode
+    capabilities: *sys_admin_caps
+
+  - name: fedora-40
+    image: geerlingguy/docker-fedora40-ansible:latest
+    command: *systemd_command
+    volumes: *cgroup_volumes
+    pre_build_image: *pre_build_image
+    privileged: *privileged
+    cgroupns_mode: *cgroupns_mode
+    capabilities: *sys_admin_caps
+
+# https://docs.ansible.com/projects/molecule/pre-ansible-native/#ansible-configuration-options
+# https://docs.ansible.com/projects/molecule/pre-ansible-native/#provisioner
+provisioner:
+  name: ansible
+  env:
+    # Fragile under CI: if ANSIBLE_COLLECTIONS_PATH isn't exported in
+    # whatever shell invokes molecule (e.g. a Bamboo agent that hasn't
+    # sourced .envrc), this resolves to an empty string and can blank
+    # out ansible.cfg's collections_path for the run. Worth either
+    # confirming Bamboo always exports it, or hardcoding the real path
+    # here instead of indirecting through a shell var that might not
+    # exist outside your local direnv-managed shell.
+    ANSIBLE_COLLECTIONS_PATH: "${ANSIBLE_COLLECTIONS_PATH}"
+    ANSIBLE_FORCE_COLOR: true
+
+  config_options:
+    defaults:
+      callbacks_enabled: ansible.posix.profile_tasks
+      # Ephemeral containers get destroyed every run - there's nothing to
+      # cache between converges, and letting ansible.cfg's jsonfile cache
+      # apply here just scatters `.ansible/facts/` under whatever role
+      # directory molecule happened to be invoked from (a CWD-relative
+      # path problem, since molecule.yml is executed from inside the role
+      # dir). `memory` never touches disk, so this sidesteps the problem
+      # entirely instead of trying to fix the path.
+      fact_caching: memory
+  inventory:
+    group_vars:
+      all:
+        ansible_python_interpreter: /usr/bin/python3
+
+# https://docs.ansible.com/projects/molecule/configuration/#scenario
+scenario:
+  test_sequence:
+    # Added "dependency" -- without it in the sequence, the
+    # `dependency: name: galaxy` block above never actually runs during a
+    # full `molecule test`. (Your earlier `molecule converge` runs worked
+    # anyway because molecule's separate, automatic "prerun" step installs
+    # requirements.yml independent of test_sequence -- but that means this
+    # block and the sequence were silently disagreeing with each other.)
+    - dependency
+    - destroy
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy
+
+# https://docs.ansible.com/projects/molecule/configuration/#verifier-pre-ansible-native
+verifier:
+  name: ansible
+
+# vim: ft=yaml ts=2 sts=2 sw=2 sr et
